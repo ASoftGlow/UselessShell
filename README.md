@@ -28,6 +28,7 @@
     )
   ),
   ```
+- Command verification and unit testing
 
 - Input buffer editing
   - Cursor navigation (← & →)
@@ -37,3 +38,7 @@
   - Delete
   - Delete word (Ctrl+Del)
   - Clear (escape)
+ 
+## Known issues
+- Only compiles on Windows, though it shouldn't be hard to implement the remining platform-specific functions for Linux
+- Large paths and inputs are not checked
