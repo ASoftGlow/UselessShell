@@ -1,0 +1,7 @@
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define DYNAMIC_ARRAY(name, type) type* name; int16_t name ## _len
+#define ENUM_SLIM(name, ...) enum{__##name};
+#define ENUM(name, size, ...) ENUM_SLIM(name, __VA_ARGS__)typedef size name;
+#define ENUM_VERBOSE(name, size, ...) ENUM(name,size,__VA_ARGS__)const static char* name ## __Names[1] = {0};
