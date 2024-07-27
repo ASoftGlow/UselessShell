@@ -14,7 +14,7 @@
   - View with `history`
   - Clear with `history clear`
   - Navigation (↑ & ↓)
-- Easy command declaraiton (see [cmd_defs.c](src/cmd_defs.c))
+- Easy command declaration (see [cmd_defs.c](src/cmd_defs.c))
 
   ```c
   CMD(
