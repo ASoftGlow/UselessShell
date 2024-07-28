@@ -3,7 +3,7 @@
 
 #include "ansi_codes.h"
 #include "util.h"
-CMD_IMPL(clear)
+CMD_IMPL_PROTO(clear)
 {
 	put(ANSI_CLEAR_OUTPUT);
 	return USCommandReturnNormal;
@@ -43,7 +43,7 @@ static void put_help(const USCommand* cmd, byte indent, bool is_brief)
 }
 
 #include <string.h>
-CMD_IMPL(help)
+CMD_IMPL_PROTO(help)
 {
 	US* us = (US*)_tm;
 	bool is_brief = args[1].exists;
@@ -72,7 +72,7 @@ CMD_IMPL(help)
 	return USCommandReturnNormal;
 }
 
-CMD_IMPL(history)
+CMD_IMPL_PROTO(history)
 {
 	US* us = (US*)_tm;
 	if (fseek(us->history.read, 0, SEEK_SET) == 0)
@@ -90,7 +90,7 @@ CMD_IMPL(history)
 	return USCommandReturnNormal;
 }
 
-CMD_IMPL(history_clear)
+CMD_IMPL_PROTO(history_clear)
 {
 	US* us = (US*)_tm;
 	if (freopen(us->history.path, "w", us->history.write))
@@ -104,7 +104,7 @@ CMD_IMPL(history_clear)
 }
 
 #include "Md5.h"
-CMD_IMPL(login)
+CMD_IMPL_PROTO(login)
 {
 	US* us = (US*)_tm;
 	const char* username = args[0].string;
@@ -141,7 +141,7 @@ CMD_IMPL(login)
 	return USCommandReturnNormal;
 }
 
-CMD_IMPL(logout)
+CMD_IMPL_PROTO(logout)
 {
 	us_logout((US*)_tm);
 	return USCommandReturnNormal;
@@ -166,7 +166,7 @@ static void us_user_info(User* user)
 	puts(user->is_super ? "true" : "false");
 }
 
-CMD_IMPL(user_info)
+CMD_IMPL_PROTO(user_info)
 {
 	US* us = (US*)_tm;
 	if (args[0].exists)
@@ -192,7 +192,7 @@ CMD_IMPL(user_info)
 	return USCommandReturnNormal;
 }
 
-CMD_IMPL(user_list)
+CMD_IMPL_PROTO(user_list)
 {
 	US* us = (US*)_tm;
 	int c = 0;
@@ -207,7 +207,7 @@ CMD_IMPL(user_list)
 	return USCommandReturnNormal;
 }
 
-CMD_IMPL(user_create)
+CMD_IMPL_PROTO(user_create)
 {
 	US* us = (US*)_tm;
 	const bool is_super = args[2].exists ? args[2].boolean : false;
@@ -224,7 +224,7 @@ CMD_IMPL(user_create)
 	return USCommandReturnError;
 }
 
-CMD_IMPL(user_delete)
+CMD_IMPL_PROTO(user_delete)
 {
 	if (!useless_shell_delete_user(_tm, args[0].string))
 	{
@@ -234,13 +234,13 @@ CMD_IMPL(user_delete)
 	return USCommandReturnNormal;
 }
 
-CMD_IMPL(exit)
+CMD_IMPL_PROTO(exit)
 {
 	return USCommandReturnExit;
 }
 
 // FIXME
-CMD_IMPL(uninstall)
+CMD_IMPL_PROTO(uninstall)
 {
 	US* us = (US*)_tm;
 	us_destroy(us);
@@ -278,7 +278,7 @@ static void put_analog(_Field_range_(0, 10) byte n, byte row)
 	}
 }
 
-CMD_IMPL(time)
+CMD_IMPL_PROTO(time)
 {
 	const bool is_analog = args[0].exists && args[0].boolean;
 	const bool watch = args[1].exists && args[1].boolean;
@@ -328,7 +328,7 @@ loop:
 
 #pragma region Auto Completes
 
-AC_IMPL(users)
+AC_IMPL_PROTO(users)
 {
 	const US* us = (const US*)tc->terminal;
 	tc->count = 0;
@@ -347,7 +347,7 @@ AC_IMPL(users)
 	}
 }
 
-AC_IMPL(cmds)
+AC_IMPL_PROTO(cmds)
 {
 	const US* us = (const US*)tc->terminal;
 	tc->count = 0;

@@ -8,17 +8,17 @@ const USCommand cmds[] =
 {
 	CMD(
 		.name = "exit",
-		.impl = cmd_exit
+		.impl = CMD_IMPL(exit)
 	),
 	CMD(
 		.name = "help",
-		.impl = cmd_help,
+		.impl = CMD_IMPL(help),
 		CMD_ARGS(
 			ARG(
 				.name = "cmd",
 				.type = USCommandArgTypeString,
 				.optional = true,
-				.auto_complete = ac_cmds
+				.auto_complete = AC_IMPL(cmds)
 			),
 			ARG(
 				.name = "b",
@@ -28,59 +28,59 @@ const USCommand cmds[] =
 	),
 	CMD(
 		.name = "clear",
-		.impl = cmd_clear
+		.impl = CMD_IMPL(clear)
 	),
 	CMD(
 		.name = "history",
 		.description = "Display the session command history",
-		.impl = cmd_history,
+		.impl = CMD_IMPL(history),
 		SUB_CMDS(
 			CMD(
 				.name = "clear",
-				.impl = cmd_history_clear
+				.impl = CMD_IMPL(history_clear)
 			)
 		)
 	),
 	CMD(
 		.name = "login",
 		.description = "Login to an existing account",
-		.impl = cmd_login,
+		.impl = CMD_IMPL(login),
 		CMD_ARGS(
 			ARG(
 				.name = "username",
 				.type = USCommandArgTypeString,
-				.auto_complete = ac_users
+				.auto_complete = AC_IMPL(users)
 			)
 		)
 	),
 	CMD(
 		.name = "logout",
 		.description = "Logout of the currect account",
-		.impl = cmd_logout
+		.impl = CMD_IMPL(logout)
 	),
 	CMD(
 		.name = "users",
 		SUB_CMDS(
 			CMD(
 				.name = "info",
-				.impl = cmd_user_info,
+				.impl = CMD_IMPL(user_info),
 				CMD_ARGS(
 					ARG(
 						.name = "username",
 						.type = USCommandArgTypeString,
 						.optional = true,
-						.auto_complete = ac_users
+						.auto_complete = AC_IMPL(users)
 					)
 				)
 			),
 			CMD(
 				.name = "list",
-				.impl = cmd_user_list
+				.impl = CMD_IMPL(user_list)
 			),
 			CMD(
 				.name = "create",
 				.is_super = true,
-				.impl = cmd_user_create,
+				.impl = CMD_IMPL(user_create),
 				CMD_ARGS(
 					ARG(
 						.name = "username",
@@ -100,12 +100,12 @@ const USCommand cmds[] =
 			CMD(
 				.name = "delete",
 				.is_super = true,
-				.impl = cmd_user_delete,
+				.impl = CMD_IMPL(user_delete),
 				CMD_ARGS(
 					ARG(
 						.name = "username",
 						.type = USCommandArgTypeString,
-						.auto_complete = ac_users
+						.auto_complete = AC_IMPL(users)
 					)
 				)
 			)
@@ -114,12 +114,12 @@ const USCommand cmds[] =
 	CMD(
 		.name = "uninstall",
 		.is_super = true,
-		.impl = cmd_uninstall
+		.impl = CMD_IMPL(uninstall)
 	),
 	CMD(
 		.name = "time",
 		.description = "Shows system time",
-		.impl = cmd_time,
+		.impl = CMD_IMPL(time),
 		CMD_ARGS(
 			ARG(
 				.name = "a",

@@ -6,5 +6,7 @@
 #define CMD_ARGS(...) STACK_PTR_ARRAY(args, USCommandArg, __VA_ARGS__)
 #define SUB_CMDS(...) STACK_PTR_ARRAY(subcmds, USCommand, __VA_ARGS__)
 
-#define CMD_IMPL(name) USCommandReturn cmd_ ## name(UselessShell* _tm, USCommandArgValue* args)
-#define AC_IMPL(name) void ac_ ## name(USTabCompleteQuery* tc)
+#define CMD_IMPL(name) _cmd_ ## name
+#define AC_IMPL(name) _ac_ ## name
+#define CMD_IMPL_PROTO(name) USCommandReturn CMD_IMPL(name)(UselessShell* _tm, USCommandArgValue* args)
+#define AC_IMPL_PROTO(name) void AC_IMPL(name)(USTabCompleteQuery* tc)
