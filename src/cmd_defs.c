@@ -122,8 +122,8 @@ const USCommand cmds[] =
 		.impl = CMD_IMPL(time),
 		CMD_ARGS(
 			ARG(
-				.name = "a",
-				.description = "Analog display",
+				.name = "d",
+				.description = "Digital display style",
 				.type = USCommandArgTypeFlag
 			),
 			ARG(

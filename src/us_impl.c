@@ -12,11 +12,11 @@ typedef struct
 	DYNAMIC_ARRAY(cmds, const USCommand);
 } ICommandProvider;
 
-bool us_load_users(US* us);
+bool us_load_users(UselessShell* us);
 
 static int User_serial_size = 0;
 
-static void put_prefix(_In_ US* us)
+static void put_prefix(_In_ UselessShell* us)
 {
 	if (us->current_user)
 	{
@@ -40,7 +40,7 @@ static void put_prefix(_In_ US* us)
 	}
 }
 
-bool us_create(_Out_ US* us, _In_reads_(cmds_len) const USCommand* cmds, int16_t cmds_len)
+bool us_create(_Out_ UselessShell* us, _In_reads_(cmds_len) const USCommand* cmds, int16_t cmds_len)
 {
 	us->cmds = cmds;
 	us->cmds_len = cmds_len;
@@ -106,7 +106,7 @@ static void us_close_log(_Inout_ USLogFile* log)
 	}
 }
 
-void us_destroy(_Inout_ US* us)
+void us_destroy(_Inout_ UselessShell* us)
 {
 	us_close_log(&us->history);
 	ansi_setdown();
@@ -212,7 +212,7 @@ _Ret_maybenull_ static const USCommand* find_cmd(_In_ const ICommandProvider * p
 	return (const USCommand*)result;
 }
 
-_Ret_maybenull_ static inline const USCommand* us_find_cmd(_In_ US * us, _In_ const char* parts, _Out_ const char** arg_start)
+_Ret_maybenull_ static inline const USCommand* us_find_cmd(_In_ UselessShell* us, _In_ const char* parts, _Out_ const char** arg_start)
 {
 	return find_cmd((const ICommandProvider*)us, parts, arg_start);
 }
@@ -354,7 +354,7 @@ static void tab_complete(_Inout_ USTabCompleteQuery * tc, _In_ const ICommandPro
 
 static inline void us_tab_complete(_Inout_ USTabCompleteQuery * tc, _In_ char* search, int len)
 {
-	tab_complete(tc, (const ICommandProvider*)tc->terminal, search, len);
+	tab_complete(tc, (const ICommandProvider*)tc->us, search, len);
 }
 
 typedef struct
@@ -490,7 +490,7 @@ static bool get_details(_Inout_ DetailsQuery * dq, _In_ const ICommandProvider *
 	return dq->result[0];
 }
 
-static inline bool us_get_details(US * us, DetailsQuery * dq, char* search, int len)
+static inline bool us_get_details(UselessShell* us, DetailsQuery * dq, char* search, int len)
 {
 	return get_details(dq, (const ICommandProvider*)us, search, len);
 }
@@ -570,7 +570,7 @@ _Check_return_ USReturn us_get_secret(_Out_writes_(max) char* buffer, byte min, 
 	}
 }
 
-_Ret_maybenull_ User* us_get_user(_In_ US * us, _In_z_ const char* username)
+_Ret_maybenull_ User* us_get_user(_In_ UselessShell* us, _In_z_ const char* username)
 {
 	for (int i = 0; i < countof(us->users); i++)
 	{
@@ -582,7 +582,7 @@ _Ret_maybenull_ User* us_get_user(_In_ US * us, _In_z_ const char* username)
 	return NULL;
 }
 
-static int us_save_user(_In_ US * us, _In_ User * user)
+static int us_save_user(_In_ UselessShell* us, _In_ User * user)
 {
 	char path[_MAX_PATH];
 	strcpy(path, us->cfg_path);
@@ -603,7 +603,7 @@ static int us_save_user(_In_ US * us, _In_ User * user)
 	return -1;
 }
 
-_Ret_maybenull_ User* us_create_user(_Inout_ US * us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon)
+_Ret_maybenull_ User* us_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon)
 {
 	MD5_CTX md5;
 	MD5Init(&md5);
@@ -612,7 +612,7 @@ _Ret_maybenull_ User* us_create_user(_Inout_ US * us, _In_z_ const char* usernam
 	return us_create_user_h(us, username, md5.digest, is_super, icon);
 }
 
-_Ret_maybenull_ User* us_create_user_h(_Inout_ US * us, _In_z_ const char* username, _In_ const char* password_hash, bool is_super, char icon)
+_Ret_maybenull_ User* us_create_user_h(_Inout_ UselessShell* us, _In_z_ const char* username, _In_ const char* password_hash, bool is_super, char icon)
 {
 	if (us_get_user(us, username))
 	{
@@ -639,7 +639,7 @@ _Ret_maybenull_ User* us_create_user_h(_Inout_ US * us, _In_z_ const char* usern
 	return NULL;
 }
 
-bool us_delete_user(_Inout_ US * us, _In_ User * user)
+bool us_delete_user(_Inout_ UselessShell* us, _In_ User * user)
 {
 	if (strcmp(us->current_user->username, "admin") == 0)
 	{
@@ -664,7 +664,7 @@ bool us_delete_user(_Inout_ US * us, _In_ User * user)
 	return false;
 }
 
-bool us_load_users(US * us)
+bool us_load_users(UselessShell* us)
 {
 	char path[_MAX_PATH];
 	char contents[8][16];
@@ -790,7 +790,7 @@ static int us_log_read_next(_Inout_ USLogFile * log, _Out_writes_(USInputBufferS
 	}
 }
 
-static int us_open_history(US * us)
+static int us_open_history(UselessShell* us)
 {
 	if (us_open_log(&us->history))
 	{
@@ -804,7 +804,7 @@ static int us_open_history(US * us)
 	return 0;
 }
 
-bool us_login(_Inout_ US * us, _In_ User * user, bool quiet)
+bool us_login(_Inout_ UselessShell* us, _In_ User * user, bool quiet)
 {
 	if (us->current_user)
 	{
@@ -850,7 +850,7 @@ bool us_login(_Inout_ US * us, _In_ User * user, bool quiet)
 	return true;
 }
 
-bool us_logout(_Inout_ US * us)
+bool us_logout(_Inout_ UselessShell* us)
 {
 	if (us_save_user(us, us->current_user)) return false;
 	us_close_log(&us->history);
@@ -861,7 +861,7 @@ bool us_logout(_Inout_ US * us)
 	return true;
 }
 
-_Check_return_ USProcessCmd us_process_cmd(_Inout_ US * us, int len)
+_Check_return_ USProcessCmd us_process_cmd(_Inout_ UselessShell* us, int len)
 {
 	USProcessCmd ret = USProcessCmdParseError;
 	char parts[USInputBufferSize];
@@ -1077,7 +1077,7 @@ _Check_return_ USProcessCmd us_process_cmd(_Inout_ US * us, int len)
 	return ret;
 }
 
-bool us_start(_Inout_ US * us)
+bool us_start(_Inout_ UselessShell* us)
 {
 	if (us->mode == USModeNew)
 	{
@@ -1332,7 +1332,7 @@ bool us_start(_Inout_ US * us)
 					break;
 				}
 				USTabCompleteQuery tc = {
-					.terminal = (UselessShell*)us
+					.us = us
 				};
 				us_tab_complete(&tc, us->ibuff, pos);
 				if (tc.count)

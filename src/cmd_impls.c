@@ -45,7 +45,6 @@ static void put_help(const USCommand* cmd, byte indent, bool is_brief)
 #include <string.h>
 CMD_IMPL_PROTO(help)
 {
-	US* us = (US*)_tm;
 	bool is_brief = args[1].exists;
 	if (args[0].exists)
 	{
@@ -74,7 +73,6 @@ CMD_IMPL_PROTO(help)
 
 CMD_IMPL_PROTO(history)
 {
-	US* us = (US*)_tm;
 	if (fseek(us->history.read, 0, SEEK_SET) == 0)
 	{
 		char a;
@@ -92,7 +90,6 @@ CMD_IMPL_PROTO(history)
 
 CMD_IMPL_PROTO(history_clear)
 {
-	US* us = (US*)_tm;
 	if (freopen(us->history.path, "w", us->history.write))
 	{
 		if (freopen(us->history.path, "a", us->history.write))
@@ -106,7 +103,6 @@ CMD_IMPL_PROTO(history_clear)
 #include "Md5.h"
 CMD_IMPL_PROTO(login)
 {
-	US* us = (US*)_tm;
 	const char* username = args[0].string;
 	put("Enter password: ");
 	fflush(stdout);
@@ -143,7 +139,7 @@ CMD_IMPL_PROTO(login)
 
 CMD_IMPL_PROTO(logout)
 {
-	us_logout((US*)_tm);
+	us_logout(us);
 	return USCommandReturnNormal;
 }
 
@@ -168,7 +164,6 @@ static void us_user_info(User* user)
 
 CMD_IMPL_PROTO(user_info)
 {
-	US* us = (US*)_tm;
 	if (args[0].exists)
 	{
 		User* user = us_get_user(us, args[0].string);
@@ -194,7 +189,6 @@ CMD_IMPL_PROTO(user_info)
 
 CMD_IMPL_PROTO(user_list)
 {
-	US* us = (US*)_tm;
 	int c = 0;
 	for (int i = 0; i < countof(us->users); i++)
 	{
@@ -209,14 +203,13 @@ CMD_IMPL_PROTO(user_list)
 
 CMD_IMPL_PROTO(user_create)
 {
-	US* us = (US*)_tm;
 	const bool is_super = args[2].exists ? args[2].boolean : false;
 	if (!(is_super && us->current_user && us->current_user->is_super))
 	{
 		puts(STYLE_ERROR("Insufficient permission"));
 		return USCommandReturnError;
 	}
-	if (useless_shell_create_user(_tm, args[0].string, args[1].string, is_super, 'A'))
+	if (useless_shell_create_user(us, args[0].string, args[1].string, is_super, 'A'))
 	{
 		printf("Created user %s.\n", args[0].string);
 		return USCommandReturnNormal;
@@ -226,7 +219,7 @@ CMD_IMPL_PROTO(user_create)
 
 CMD_IMPL_PROTO(user_delete)
 {
-	if (!useless_shell_delete_user(_tm, args[0].string))
+	if (!useless_shell_delete_user(us, args[0].string))
 	{
 		puts(STYLE_ERROR("Failed to delete user"));
 		return USCommandReturnError;
@@ -242,14 +235,13 @@ CMD_IMPL_PROTO(exit)
 // FIXME
 CMD_IMPL_PROTO(uninstall)
 {
-	US* us = (US*)_tm;
 	us_destroy(us);
 	int ret = delete_directory(us->cfg_path);
 	printf("er: %i", ret);
 	return USCommandReturnExit;
 }
 
-static const char* analog_numbers[][3] = {
+static const char* digital_numbers[][3] = {
 	{"|_|","| |"," _ "},
 	{"_|_"," | ","_  "},
 	{"|__"," _|","__ "},
@@ -262,25 +254,25 @@ static const char* analog_numbers[][3] = {
 	{"__|","|_|"," _ "},
 	{" . "," ' ","   "}
 };
-static void put_analog(_Field_range_(0, 10) byte n, byte row)
+static void put_digital(_Field_range_(0, 10) byte n, byte row)
 {
 	if (n < 10)
 	{
-		put(analog_numbers[0][row]);
+		put(digital_numbers[0][row]);
 		putchar(' ');
-		put(analog_numbers[n][row]);
+		put(digital_numbers[n][row]);
 	}
 	else
 	{
-		put(analog_numbers[n / 10][row]);
+		put(digital_numbers[n / 10][row]);
 		putchar(' ');
-		put(analog_numbers[n % 10][row]);
+		put(digital_numbers[n % 10][row]);
 	}
 }
 
 CMD_IMPL_PROTO(time)
 {
-	const bool is_analog = args[0].exists && args[0].boolean;
+	const bool is_digital = args[0].exists && args[0].boolean;
 	const bool watch = args[1].exists && args[1].boolean;
 
 	if (watch)
@@ -292,15 +284,15 @@ CMD_IMPL_PROTO(time)
 loop:
 	const time_t t = time(NULL);
 	struct tm* tm = localtime(&t);
-	if (is_analog)
+	if (is_digital)
 	{
-		for (int8_t row = countof(analog_numbers[0]) - 1; row >= 0; row--)
+		for (int8_t row = countof(digital_numbers[0]) - 1; row >= 0; row--)
 		{
-			put_analog(tm->tm_hour, row);
-			put(analog_numbers[10][row]);
-			put_analog(tm->tm_min, row);
-			put(analog_numbers[10][row]);
-			put_analog(tm->tm_sec, row);
+			put_digital(tm->tm_hour, row);
+			put(digital_numbers[10][row]);
+			put_digital(tm->tm_min, row);
+			put(digital_numbers[10][row]);
+			put_digital(tm->tm_sec, row);
 			putchar('\n');
 		}
 	}
@@ -321,7 +313,7 @@ loop:
 		}
 		(void)us_getchar();
 		put("\n" ANSI_CURSOR_SHOW);
-		if (is_analog) put("\n\n");
+		if (is_digital) put("\n\n");
 	}
 	return USCommandReturnNormal;
 }
@@ -330,11 +322,10 @@ loop:
 
 AC_IMPL_PROTO(users)
 {
-	const US* us = (const US*)tc->terminal;
 	tc->count = 0;
-	for (int i = 0; i < countof(us->users); i++)
+	for (int i = 0; i < countof(tc->us->users); i++)
 	{
-		const User* user = &us->users[i];
+		const User* user = &tc->us->users[i];
 		if (user->exists && strncmp(tc->part, user->username, strlen(tc->part)) == 0)
 		{
 			if (tc->count == countof(tc->results))
@@ -349,11 +340,10 @@ AC_IMPL_PROTO(users)
 
 AC_IMPL_PROTO(cmds)
 {
-	const US* us = (const US*)tc->terminal;
 	tc->count = 0;
-	for (short i = 0; i < us->cmds_len; i++)
+	for (short i = 0; i < tc->us->cmds_len; i++)
 	{
-		const USCommand* cmd = &us->cmds[i];
+		const USCommand* cmd = &tc->us->cmds[i];
 		if (strncmp(cmd->name, tc->part, strlen(tc->part)) == 0)
 		{
 			if (tc->count == countof(tc->results))

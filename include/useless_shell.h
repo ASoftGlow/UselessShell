@@ -4,7 +4,7 @@
 
 #define DYNAMIC_ARRAY(name, type) type* name; int16_t name ## _len
 
-typedef void* UselessShell;
+typedef struct UselessShell UselessShell;
 
 ENUM(USCommandArgType, byte,
 	Unset,
@@ -18,7 +18,7 @@ typedef byte USCommandArgType;
 
 typedef struct
 {
-	const UselessShell* terminal;
+	const UselessShell* us;
 
 	const char* part;
 	const char* results[2];

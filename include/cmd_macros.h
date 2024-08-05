@@ -8,5 +8,5 @@
 
 #define CMD_IMPL(name) _cmd_ ## name
 #define AC_IMPL(name) _ac_ ## name
-#define CMD_IMPL_PROTO(name) USCommandReturn CMD_IMPL(name)(UselessShell* _tm, USCommandArgValue* args)
+#define CMD_IMPL_PROTO(name) USCommandReturn CMD_IMPL(name)(UselessShell* us, USCommandArgValue* args)
 #define AC_IMPL_PROTO(name) void AC_IMPL(name)(USTabCompleteQuery* tc)

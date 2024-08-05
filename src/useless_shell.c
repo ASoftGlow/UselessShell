@@ -24,7 +24,7 @@
 #endif
 
 #ifdef US_ENABLE_TESTING
-static void _VERIFY_INPUT(US* us, const char* input, USProcessCmd expected, const char* purpose)
+static void _VERIFY_INPUT(UselessShell* us, const char* input, USProcessCmd expected, const char* purpose)
 {
 	strcpy(us->ibuff, input);
 	put(ANSI_CLEAR_OUTPUT);
@@ -34,7 +34,7 @@ static void _VERIFY_INPUT(US* us, const char* input, USProcessCmd expected, cons
 #define VERIFY_INPUT(input, expected, purpose) \
 	_VERIFY_INPUT(us, input, USProcessCmd ## expected, "[Testing] " purpose "\n  Input:\t" input "\n  Expected:\t" STR_VALUE(expected) "\n  Actual:\t");
 
-static void us_run_tests(US* us)
+static void us_run_tests(UselessShell* us)
 {
 	VERIFY_INPUT("_test a", Success, "Basic");
 	VERIFY_INPUT("_test b one two", Success, "Basic arguments");
@@ -136,7 +136,7 @@ static void us_verify_cmds(const USCommand* cmds, short cmds_len)
 
 _Ret_maybenull_ UselessShell* useless_shell_create(_In_reads_(cmds_len) const USCommand* cmds, int16_t cmds_len)
 {
-	US* us = (US*)malloc(sizeof(US));
+	UselessShell* us = (UselessShell*)malloc(sizeof(UselessShell));
 	if (!us) return NULL;
 	if (us_create(us, cmds, cmds_len))
 	{
@@ -154,45 +154,45 @@ _Ret_maybenull_ UselessShell* useless_shell_create(_In_reads_(cmds_len) const US
 
 void useless_shell_destroy(_Post_invalid_ _In_ UselessShell* us)
 {
-	us_destroy((US*)us);
+	us_destroy(us);
 	free(us);
 }
 
 bool useless_shell_start(_Inout_ UselessShell* us)
 {
-	return us_start((US*)us);
+	return us_start(us);
 }
 
 bool useless_shell_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon)
 {
-	return us_create_user((US*)us, username, password, is_super, icon) != NULL;
+	return us_create_user(us, username, password, is_super, icon) != NULL;
 }
 
 bool useless_shell_delete_user(_Inout_ UselessShell* us, _In_z_ const char* username)
 {
-	User* user = us_get_user((US*)us, username);
+	User* user = us_get_user(us, username);
 	if (user)
 	{
-		return us_delete_user((US*)us, user);
+		return us_delete_user(us, user);
 	}
 	return false;
 }
 
 bool useless_shell_login(_Inout_ UselessShell* us, _In_z_ const char* username)
 {
-	User* user = us_get_user((US*)us, username);
+	User* user = us_get_user(us, username);
 	if (user)
 	{
-		return us_login((US*)us, user, true);
+		return us_login(us, user, true);
 	}
 	return false;
 }
 
 bool useless_shell_logout(_Inout_ UselessShell* us)
 {
-	if (((US*)us)->current_user)
+	if ((us)->current_user)
 	{
-		return us_logout((US*)us);
+		return us_logout(us);
 	}
 	return false;
 }
