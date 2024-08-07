@@ -42,3 +42,8 @@
 ## Known issues
 - Only compiles on Windows, though it shouldn't be hard to implement the remining platform-specific functions for Linux
 - Large paths and inputs are not checked
+
+## Installation
+A `.useless_shell` directory will be created in `~/AppData/Roaming` upon first run to store command history and user data.
+## Uninstallation
+Login as admin user (`login admin`) and run `uninstall`. To do it manually, delete the `.useless_shell` directroy and the executable.

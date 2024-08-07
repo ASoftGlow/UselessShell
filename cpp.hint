@@ -4,4 +4,4 @@
 #define DYNAMIC_ARRAY(name, type) type* name; int16_t name ## _len
 #define ENUM_SLIM(name, ...) enum{__##name};
 #define ENUM(name, size, ...) ENUM_SLIM(name, __VA_ARGS__)typedef size name;
-#define ENUM_VERBOSE(name, size, ...) ENUM(name,size,__VA_ARGS__)const static char* name ## __Names[1] = {0};
+#define ENUM_REFLECT(name, size, ...) ENUM(name,size,__VA_ARGS__)const static char* name ## __Names[1] = {0};

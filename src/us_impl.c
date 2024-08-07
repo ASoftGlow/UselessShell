@@ -1116,6 +1116,7 @@ bool us_start(_Inout_ UselessShell* us)
 	const struct tm* lt = localtime(&t);
 	char* const ti = asctime(lt);
 	if (!ti) return false;
+	// remove trailing newline
 	ti[strlen(ti) - 1] = 0;
 	put(ti);
 	putchar('.');

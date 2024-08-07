@@ -15,6 +15,8 @@
 #define WARN(expression, reason) _WARN(expression, puts(reason));
 #define WARN_CMD(expression, reason) _WARN(expression, printf("[CMD] %s: " reason "\n", cmd->name))
 #define WARN_CMD_ARG(etype, reason) WARN(arg->type == USCommandArgType ## etype, "A " #etype " argument " reason)
+#define VERIFY_CMD_STACK_LEN(len) VERIFY_CMD(len <= USInputBufferSize, "Command stack is too long to input");
+#define VERIFY_CMD_ARG_STACK_LEN(len) VERIFY_CMD_ARG(len <= USInputBufferSize, "Command stack is too long to input");
 #else
 #define VERIFY_CMD(expression, reason)
 #define VERIFY_CMD_ARG(expression, reason)
@@ -62,6 +64,8 @@ static void us_run_tests(UselessShell* us)
 }
 #endif
 
+static size_t cmd_stack_len;
+
 static void us_verify_cmd(const USCommand* cmd)
 {
 	VERIFY_CMD(!(cmd->args_len && cmd->subcmds_len), "A command cannot have both arguments and sub commands");
@@ -72,12 +76,16 @@ static void us_verify_cmd(const USCommand* cmd)
 	{
 		VERIFY_CMD(cmd->name[j] != ' ', "A command name must not contain spaces");
 	}
+	cmd_stack_len += 1 + strlen(cmd->name);
+	VERIFY_CMD_STACK_LEN(cmd_stack_len);
+
 	bool optional = false;
 	for (short i = 0; i < cmd->args_len; i++)
 	{
 		const USCommandArg* arg = &cmd->args[i];
 		VERIFY_CMD_ARG(arg->name[0], "An argument must have a name");
 		VERIFY_CMD_ARG(strislwr(arg->name), "An argument name must be lowercase");
+
 		int j = -1;
 		while (arg->name[++j])
 		{
@@ -91,9 +99,12 @@ static void us_verify_cmd(const USCommand* cmd)
 			WARN_CMD_ARG(Flag, "should not have an auto complete function");
 		}
 
+		size_t arg_stack_len = cmd_stack_len + 1;
+
 		VERIFY_CMD_ARG(arg->type != USCommandArgTypeUnset, "An argument's type must be set");
-		if (arg->type == USCommandArgTypeFlag)
+		switch (arg->type)
 		{
+		case USCommandArgTypeFlag:
 			VERIFY_CMD_ARG(arg->name[1] == 0, "A Flag argument's name must be one character long");
 			for (short k = 0; k < cmd->args_len; k++)
 			{
@@ -103,9 +114,13 @@ static void us_verify_cmd(const USCommand* cmd)
 					VERIFY_CMD_ARG(arg->name[0] != arg2->name[0], "A Flag argument's name must be unique");
 				}
 			}
-		}
-		else
-		{
+			arg_stack_len += sizeof("-a") - 1;
+			break;
+
+		case USCommandArgTypeBoolean:
+			arg_stack_len += sizeof("false") - 1;
+
+		default:
 			if (optional)
 			{
 				VERIFY_CMD(arg->optional, "All arguments preceding an optional argument must also be optional");
@@ -114,7 +129,10 @@ static void us_verify_cmd(const USCommand* cmd)
 			{
 				optional = true;
 			}
+			break;
 		}
+
+		VERIFY_CMD_ARG_STACK_LEN(arg_stack_len);
 	}
 	WARN_CMD(!cmd->subcmds_len && !cmd->impl, "No command implemention");
 }
@@ -126,9 +144,11 @@ static void us_verify_cmds(const USCommand* cmds, short cmds_len)
 	{
 		const USCommand* cmd = &cmds[i];
 		if (strcmp(cmd->name, "_test") == 0) continue;
+		cmd_stack_len = 0;
 		us_verify_cmd(cmd);
 		for (int j = 0; j < cmd->subcmds_len; j++)
 		{
+			cmd_stack_len = strlen(cmd->name);
 			us_verify_cmd(&cmd->subcmds[j]);
 		}
 	}

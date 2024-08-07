@@ -26,7 +26,7 @@ ENUM_SLIM(USCommandReturn,
 	Exit
 );
 
-ENUM_VERBOSE(USProcessCmd, byte,
+ENUM_REFLECT(USProcessCmd, byte,
 	Success,
 	ParseError,
 	ExecError,
