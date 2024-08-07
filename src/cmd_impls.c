@@ -232,12 +232,11 @@ CMD_IMPL_PROTO(exit)
 	return USCommandReturnExit;
 }
 
-// FIXME
 CMD_IMPL_PROTO(uninstall)
 {
 	us_destroy(us);
-	int ret = delete_directory(us->cfg_path);
-	printf("er: %i", ret);
+	delete_directory(us->cfg_path);
+	delete_self();
 	return USCommandReturnExit;
 }
 

@@ -818,6 +818,10 @@ bool us_login(_Inout_ UselessShell* us, _In_ User * user, bool quiet)
 		}
 		if (!us_logout(us)) return false;
 	}
+	else
+	{
+		us_close_log(&us->history);
+	}
 
 	us->current_user = user;
 

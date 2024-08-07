@@ -45,7 +45,9 @@ void sleep(unsigned long ms)
 void sleep(unsigned long ms)
 {
 	nanosleep((const struct timespec[]) {
-		{ 0, ms * 1000000L }
+		{
+			0, ms * 1000000L
+		}
 	}, NULL);
 }
 #endif
@@ -177,4 +179,23 @@ int strcatc(_Inout_z_ char* str, char c)
 	str[len] = c;
 	str[len + 1] = 0;
 	return 0;
+}
+
+void delete_self(void)
+{
+#ifdef _WIN32
+	STARTUPINFOA si = { sizeof(STARTUPINFOA) };
+	PROCESS_INFORMATION pi;
+	char cmd_fmt[] = "cmd.exe /C " // start seperate cmd process
+		"FOR / L % %L IN(0, 1, 10) DO " // 10 attempts to
+		"Del \"%s\" && IF NOT EXIST \"%s\" (exit /b) " // delete file
+		"ELSE timeout /NOBREAK 1"; // otherwise wait
+	char cmd[MAX_PATH * 2 + sizeof(cmd_fmt)];
+	sprintf(cmd, cmd_fmt, __argv[0], __argv[0]);
+	CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+#else
+	unlink(__argv[0]);
+#endif
 }
