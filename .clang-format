@@ -1,0 +1,24 @@
+BasedOnStyle: GNU
+IndentWidth: 4
+ColumnLimit: 128
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+AlignEscapedNewlines: Left
+AlignAfterOpenBracket: BlockIndent
+PointerAlignment: Left
+WhitespaceSensitiveMacros: [ENUM_SLIM, ENUM, ENUM_REFLECT]
+SpaceBeforeParens: ControlStatements
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: true
+UseTab: Never
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+SeparateDefinitionBlocks: Always
+AlignArrayOfStructures: Left

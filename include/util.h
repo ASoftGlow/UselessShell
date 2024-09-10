@@ -2,17 +2,17 @@
 
 #include "base.h"
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
 #define ETR_CHAR '\r'
-#define DIR_SEP "\\"
+#define DIR_SEP  "\\"
 #else
 #define ETR_CHAR '\n'
-#define DIR_SEP "/"
+#define DIR_SEP  "/"
 #endif
 #if !defined(errno_t)
 typedef int errno_t;
@@ -68,9 +68,9 @@ bool strislwr(_In_z_ const char* str);
 bool iswordend(const char c);
 void us_sleep(unsigned long ms);
 
-
 // puts without newline
-static inline int put(_In_z_ const char* str)
+static inline int
+put(_In_z_ const char* str)
 {
-	return fputs(str, stdout);
+    return fputs(str, stdout);
 }
