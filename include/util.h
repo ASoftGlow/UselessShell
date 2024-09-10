@@ -9,11 +9,16 @@
 
 #ifdef _WIN32
 #define ETR_CHAR '\r'
+#define DIR_SEP "\\"
 #else
 #define ETR_CHAR '\n'
+#define DIR_SEP "/"
+#endif
+#if !defined(errno_t)
+typedef int errno_t;
 #endif
 
-ENUM(USChar, uint16_t,
+ENUM(USChar, int16_t,
 	Escape = 27,
 	BackWord = 127,
 	Undo = 26,
@@ -61,7 +66,7 @@ int get_directory_contents(_Inout_z_ char* path, _Out_writes_(max) char contents
 int strcatc(_Inout_z_ char* str, char c);
 bool strislwr(_In_z_ const char* str);
 bool iswordend(const char c);
-void sleep(unsigned long ms);
+void us_sleep(unsigned long ms);
 
 
 // puts without newline

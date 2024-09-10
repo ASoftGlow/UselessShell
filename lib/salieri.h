@@ -1059,6 +1059,14 @@
 #  define SALIERI_DEFINED_Post_equal_to
 #endif
 
+#if defined(_Post_invalid_) && defined(SALIERI_DEFINED_Post_invalid_)
+#  undef _Post_invalid_
+#endif
+#if !defined(_Post_invalid_)
+#  define _Post_invalid_
+#  define SALIERI_DEFINED_Post_invalid_
+#endif
+
 #if defined(_Struct_size_bytes_) && defined(SALIERI_DEFINED_Struct_size_bytes)
 #  undef _Struct_size_bytes_
 #endif

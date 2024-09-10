@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 
 typedef struct
 {
@@ -57,14 +58,14 @@ bool us_create(_Out_ UselessShell* us, _In_reads_(cmds_len) const USCommand* cmd
 		us->users[i].exists = false;
 	}
 
-	switch (get_cfg_path(us->cfg_path, ".useless_shell"))
+	switch (get_cfg_path(us->cfg_path, "useless_shell"))
 	{
-	case 0:
+	case EEXIST:
 		us->mode = USModeCreated;
 		us_load_users(us);
 		break;
 
-	case EEXIST:
+	case 0:
 		// new install
 		us->mode = USModeNew;
 		break;
@@ -75,8 +76,7 @@ bool us_create(_Out_ UselessShell* us, _In_reads_(cmds_len) const USCommand* cmd
 
 	us->history.read = NULL;
 	us->history.write = NULL;
-	strcpy(us->history.path, us->cfg_path);
-	strcat(us->history.path, "history");
+	strcat(stpcpy(us->history.path, us->cfg_path), "history");
 	return true;
 }
 
@@ -113,7 +113,8 @@ void us_destroy(_Inout_ UselessShell* us)
 	us->mode = USModeDestoryed;
 }
 
-_Success_(return) static bool split_cmd_s(_In_reads_(len) char* cmd, int len, _Out_ char* parts, int parts_size)
+_Success_(return)
+static bool split_cmd_s(_In_reads_(len) char* cmd, int len, _Out_ char* parts, int parts_size)
 {
 	int i = 0, h = 0, c = 0;
 	bool str_escaped = false, back_escaped = false;
@@ -182,7 +183,8 @@ _Success_(return) static bool split_cmd_s(_In_reads_(len) char* cmd, int len, _O
 }
 #define split_cmd(cmd, len, parts) split_cmd_s(cmd, len, parts, countof(parts))
 
-_Ret_maybenull_ static const ICommandProvider* _find_cmd(_In_ const ICommandProvider * provider, _Inout_ const char** arg_start)
+_Ret_maybenull_
+static const ICommandProvider* _find_cmd(_In_ const ICommandProvider* provider, _Inout_ const char** arg_start)
 {
 	for (short i = 0; i < provider->cmds_len; i++)
 	{
@@ -205,14 +207,16 @@ _Ret_maybenull_ static const ICommandProvider* _find_cmd(_In_ const ICommandProv
 	return NULL;
 }
 
-_Ret_maybenull_ static const USCommand* find_cmd(_In_ const ICommandProvider * provider, _In_ const char* parts, _Out_ const char** arg_start)
+_Ret_maybenull_
+static const USCommand* find_cmd(_In_ const ICommandProvider * provider, _In_ const char* parts, _Out_ const char** arg_start)
 {
 	*arg_start = parts;
 	const ICommandProvider* result = _find_cmd(provider, arg_start);
 	return (const USCommand*)result;
 }
 
-_Ret_maybenull_ static inline const USCommand* us_find_cmd(_In_ UselessShell* us, _In_ const char* parts, _Out_ const char** arg_start)
+_Ret_maybenull_
+static inline const USCommand* us_find_cmd(_In_ UselessShell* us, _In_ const char* parts, _Out_ const char** arg_start)
 {
 	return find_cmd((const ICommandProvider*)us, parts, arg_start);
 }
@@ -412,11 +416,11 @@ static void _get_details(_Inout_ DetailsQuery * dq, _In_ const ICommandProvider 
 							if (arg)
 							{
 								dq->result[0] = '-';
-								strcpy(dq->result + 1, arg->name);
+								char* end = stpcpy(dq->result + 1, arg->name);
 								if (arg->description[0])
 								{
-									strcatc(dq->result, '\n');
-									strcat(dq->result, arg->description);
+									*end = '\n';
+									strcpy(end + 1, arg->description);
 								}
 							}
 							return;
@@ -441,20 +445,23 @@ static void _get_details(_Inout_ DetailsQuery * dq, _In_ const ICommandProvider 
 					}
 
 					dq->result[0] = arg->optional ? '(' : '<';
-					strcpy(dq->result + 1, arg->name);
-					strcatc(dq->result, arg->optional ? ')' : '>');
+					char* end = stpcpy(dq->result + 1, arg->name);
+					*end = arg->optional ? ')' : '>';
+					end++;
 					if (arg->description[0])
 					{
-						strcatc(dq->result, '\n');
-						strcat(dq->result, arg->description);
+						*end = '\n';
+						end++;
+						strcpy(end, arg->description);
 					}
 					break;
 				}
-				strcpy(dq->result, cmd->name);
+				char* end = stpcpy(dq->result, cmd->name);
 				if (cmd->description[0])
 				{
-					strcatc(dq->result, '\n');
-					strcat(dq->result, cmd->description);
+					*end = '\n';
+					end++;
+					strcpy(end, cmd->description);
 				}
 				continue;
 			}
@@ -495,7 +502,8 @@ static inline bool us_get_details(UselessShell* us, DetailsQuery * dq, char* sea
 	return get_details(dq, (const ICommandProvider*)us, search, len);
 }
 
-_Check_return_ USReturn us_get_secret(_Out_writes_(max) char* buffer, byte min, byte max)
+_Check_return_
+USReturn us_get_secret(_Out_writes_(max) char* buffer, byte min, byte max)
 {
 	int i = 0;
 	while (1)
@@ -570,7 +578,8 @@ _Check_return_ USReturn us_get_secret(_Out_writes_(max) char* buffer, byte min, 
 	}
 }
 
-_Ret_maybenull_ User* us_get_user(_In_ UselessShell* us, _In_z_ const char* username)
+_Ret_maybenull_
+User* us_get_user(_In_ UselessShell* us, _In_z_ const char* username)
 {
 	for (int i = 0; i < countof(us->users); i++)
 	{
@@ -584,13 +593,13 @@ _Ret_maybenull_ User* us_get_user(_In_ UselessShell* us, _In_z_ const char* user
 
 static int us_save_user(_In_ UselessShell* us, _In_ User * user)
 {
-	char path[_MAX_PATH];
+	char path[US_MAX_PATH];
 	strcpy(path, us->cfg_path);
-	strcat(path, "users\\");
+	strcat(path, "users" DIR_SEP);
 	create_directory(path);
 	strcat(path, user->username);
 	create_directory(path);
-	strcat(path, "\\info");
+	strcat(path, DIR_SEP "info");
 
 	FILE* f = fopen(path, "wb");
 	if (f)
@@ -603,7 +612,8 @@ static int us_save_user(_In_ UselessShell* us, _In_ User * user)
 	return -1;
 }
 
-_Ret_maybenull_ User* us_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon)
+_Ret_maybenull_
+User* us_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon)
 {
 	MD5_CTX md5;
 	MD5Init(&md5);
@@ -612,7 +622,8 @@ _Ret_maybenull_ User* us_create_user(_Inout_ UselessShell* us, _In_z_ const char
 	return us_create_user_h(us, username, md5.digest, is_super, icon);
 }
 
-_Ret_maybenull_ User* us_create_user_h(_Inout_ UselessShell* us, _In_z_ const char* username, _In_ const char* password_hash, bool is_super, char icon)
+_Ret_maybenull_
+User* us_create_user_h(_Inout_ UselessShell* us, _In_z_ const char* username, _In_ const char* password_hash, bool is_super, char icon)
 {
 	if (us_get_user(us, username))
 	{
@@ -628,7 +639,7 @@ _Ret_maybenull_ User* us_create_user_h(_Inout_ UselessShell* us, _In_z_ const ch
 			user->creation = time(NULL);
 			user->last_login = 0;
 			user->is_super = is_super;
-			strcpy_s(user->username, sizeof(user->username), username);
+			strcpy(user->username, username);
 			memcpy(user->password, password_hash, sizeof(user->password));
 			user->icon = icon;
 
@@ -652,9 +663,9 @@ bool us_delete_user(_Inout_ UselessShell* us, _In_ User * user)
 		us_logout(us);
 	}
 
-	char path[_MAX_PATH];
+	char path[US_MAX_PATH];
 	strcpy(path, us->cfg_path);
-	strcat(path, "users\\");
+	strcat(path, "users" DIR_SEP);
 	create_directory(path);
 	strcat(path, user->username);
 	if (delete_directory(path) == 0)
@@ -666,22 +677,19 @@ bool us_delete_user(_Inout_ UselessShell* us, _In_ User * user)
 
 bool us_load_users(UselessShell* us)
 {
-	char path[_MAX_PATH];
+	char path[US_MAX_PATH];
 	char contents[8][16];
 
-	strcpy(path, us->cfg_path);
-	strcat(path, "users");
+	char* end = stpcpy(stpcpy(path, us->cfg_path), "users");
 	create_directory(path);
 
 	if (!get_directory_contents(path, contents, countof(contents), true))
 	{
-		strcat(path, "\\");
-		char* base = path + strlen(path);
+		end = stpcpy(end, DIR_SEP);
 		int i = 0;
 		while (contents[i][0] && i < countof(contents))
 		{
-			strcpy(base, contents[i]);
-			strcat(base, "\\info");
+			strcpy(stpcpy(end, contents[i]), DIR_SEP "info");
 			FILE* f = fopen(path, "rb+");
 			if (!f)
 			{
@@ -737,9 +745,7 @@ static int us_log_read_last(_Inout_ USLogFile * log, _Out_writes_(USInputBufferS
 		read--;
 		i--;
 	}
-	while (--i >= 0 && buffer[i] != '\n')
-	{
-	}
+	while (--i >= 0 && buffer[i] != '\n');
 	int len = read - i;
 	*from_pos += len + 1;
 	*line_start = buffer + i + 1;
@@ -756,11 +762,6 @@ static int us_log_read_last(_Inout_ USLogFile * log, _Out_writes_(USInputBufferS
 _Success_(return)
 static int us_log_read_next(_Inout_ USLogFile * log, _Out_writes_(USInputBufferSize) char* buffer, _Out_ char** line_start, _Inout_ long* from_pos)
 {
-	if (*from_pos <= 0)
-	{
-		*from_pos = 0;
-		return 0;
-	}
 	if (fseek(log->read, -*from_pos, SEEK_END)) return 0;
 	long read = (long)fread(buffer, 1, USInputBufferSize, log->read);
 	if (!read) return 0;
@@ -804,7 +805,7 @@ static int us_open_history(UselessShell* us)
 	return 0;
 }
 
-bool us_login(_Inout_ UselessShell* us, _In_ User * user, bool quiet)
+bool us_login(_Inout_ UselessShell* us, _In_ User* user, bool quiet)
 {
 	if (us->current_user)
 	{
@@ -826,9 +827,9 @@ bool us_login(_Inout_ UselessShell* us, _In_ User * user, bool quiet)
 	us->current_user = user;
 
 	strcpy(us->history.path, us->cfg_path);
-	strcat(us->history.path, "users\\");
+	strcat(us->history.path, "users" DIR_SEP);
 	strcat(us->history.path, user->username);
-	strcat(us->history.path, "\\history");
+	strcat(us->history.path, DIR_SEP "history");
 	if (us_open_history(us)) return false;
 
 	if (!quiet)
@@ -856,7 +857,8 @@ bool us_login(_Inout_ UselessShell* us, _In_ User * user, bool quiet)
 
 bool us_logout(_Inout_ UselessShell* us)
 {
-	if (us_save_user(us, us->current_user)) return false;
+	if (us->current_user && us_save_user(us, us->current_user))
+		return false;
 	us_close_log(&us->history);
 	us->current_user = NULL;
 	strcpy(us->history.path, us->cfg_path);
@@ -865,7 +867,8 @@ bool us_logout(_Inout_ UselessShell* us)
 	return true;
 }
 
-_Check_return_ USProcessCmd us_process_cmd(_Inout_ UselessShell* us, int len)
+_Check_return_
+USProcessCmd us_process_cmd(_Inout_ UselessShell* us, int len)
 {
 	USProcessCmd ret = USProcessCmdParseError;
 	char parts[USInputBufferSize];
@@ -971,8 +974,9 @@ _Check_return_ USProcessCmd us_process_cmd(_Inout_ UselessShell* us, int len)
 									|| strcmp(r_arg, "false")
 									|| strcmp(r_arg, "False")
 									|| strcmp(r_arg, "FALSE")
-									|| strcmp(r_arg, "OFF")
 									|| strcmp(r_arg, "off")
+									|| strcmp(r_arg, "Off")
+									|| strcmp(r_arg, "OFF")
 									)
 								{
 									arg->boolean = true;
@@ -985,8 +989,9 @@ _Check_return_ USProcessCmd us_process_cmd(_Inout_ UselessShell* us, int len)
 									|| strcmp(r_arg, "true")
 									|| strcmp(r_arg, "True")
 									|| strcmp(r_arg, "TRUE")
-									|| strcmp(r_arg, "ON")
 									|| strcmp(r_arg, "on")
+									|| strcmp(r_arg, "On")
+									|| strcmp(r_arg, "ON")
 									)
 								{
 									arg->boolean = true;
@@ -1256,7 +1261,7 @@ bool us_start(_Inout_ UselessShell* us)
 				if (pos < len)
 				{
 					int del_pos = pos;
-					while (del_pos < len && !iswordend(us->ibuff[del_pos++])) {}
+					while (del_pos < len && !iswordend(us->ibuff[del_pos++]));
 
 					memmove(us->ibuff + pos, us->ibuff + del_pos, (size_t)len - del_pos);
 					put(ANSI_CURSOR_SAVE);
@@ -1287,7 +1292,7 @@ bool us_start(_Inout_ UselessShell* us)
 				if (pos < len)
 				{
 					int del_pos = pos;
-					while (del_pos < len && !iswordend(us->ibuff[del_pos++])) {}
+					while (del_pos < len && !iswordend(us->ibuff[del_pos++]));
 
 					printf("\33[%iC", del_pos - pos);
 					pos = del_pos;
@@ -1336,9 +1341,7 @@ bool us_start(_Inout_ UselessShell* us)
 					NOT_ALLOWED();
 					break;
 				}
-				USTabCompleteQuery tc = {
-					.us = us
-				};
+				USTabCompleteQuery tc = { .us = us };
 				us_tab_complete(&tc, us->ibuff, pos);
 				if (tc.count)
 				{
@@ -1405,37 +1408,40 @@ bool us_start(_Inout_ UselessShell* us)
 			case USCharUp:
 			{
 				char* line_start;
-				history_line_len = us_log_read_last(&us->history, us->lbuff, &line_start, &history_pos);
-				if (history_line_len)
-				{
-					len = history_line_len;
-					if (pos)
-					{
-						printf("\33[%iD", pos);
-					}
-					put(ANSI_CLEAR_PROCEEDING_LINE);
-					pos = len;
-					fwrite(line_start, 1, len, stdout);
-					memcpy(us->ibuff, line_start, len);
-				}
-				else
+				long read_count = us_log_read_last(&us->history, us->lbuff, &line_start, &history_pos);
+				if (!read_count)
 				{
 					NOT_ALLOWED();
+					break;
 				}
+				len = history_line_len = read_count;
+				if (pos)
+				{
+					printf("\33[%iD", pos);
+				}
+				put(ANSI_CLEAR_PROCEEDING_LINE);
+				pos = len;
+				fwrite(line_start, 1, len, stdout);
+				memcpy(us->ibuff, line_start, len);
 			}
 			break;
 
 			case USCharDown:
 			{
-				char* line_start;
+				char* line_start;			
 				history_pos -= history_line_len;
-				history_line_len = us_log_read_next(&us->history, us->lbuff, &line_start, &history_pos);
-				if (!history_line_len && !len)
+				if (history_pos <= 0)
+				{
+					history_pos = 0;
+					break;
+				}
+				long read_count = us_log_read_next(&us->history, us->lbuff, &line_start, &history_pos);
+				if (!read_count && !len)
 				{
 					NOT_ALLOWED();
 					break;
 				}
-				len = history_line_len;
+				len = history_line_len = read_count;
 				if (pos)
 				{
 					printf("\33[%iD", pos);

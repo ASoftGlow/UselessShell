@@ -124,7 +124,7 @@ CMD_IMPL_PROTO(login)
 			puts(STYLE_ERROR("Incorrect password"));
 			NOT_ALLOWED();
 			fflush(stdout);
-			sleep(1000);
+			us_sleep(1000);
 		}
 		break;
 
@@ -303,7 +303,7 @@ loop:
 	if (watch)
 	{
 		fflush(stdout);
-		sleep(1000);
+		us_sleep(1000);
 		put("\r");
 		put(ANSI_CURSOR_RESTORE);
 		if (!us_chrdy())

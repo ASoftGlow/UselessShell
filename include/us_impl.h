@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define STYLE_CMD(name) ANSI_BOLD "|" ANSI_COLOR_CYAN STR_VALUE(name) ANSI_COLOR_RESET ANSI_BOLD "|" ANSI_COLOR_RESET
 #define STYLE_ERROR_START "! " ANSI_COLOR_RED
@@ -43,7 +44,7 @@ typedef struct
 {
 	FILE* write;
 	FILE* read;
-	char path[_MAX_PATH];
+	char path[US_MAX_PATH];
 	char last_line[USInputBufferSize];
 } USLogFile;
 
@@ -68,24 +69,45 @@ struct UselessShell
 	DYNAMIC_ARRAY(cmds, const USCommand);
 #pragma endregion
 
-	enum USMode mode;
+	USMode mode;
 	User* current_user;
 	User users[8];
 
 	char ibuff[USInputBufferSize];
 	char lbuff[USInputBufferSize];
-	char cfg_path[_MAX_PATH];
+	char cfg_path[US_MAX_PATH];
 	USLogFile history;
 };
 
-bool us_create(_Out_ UselessShell* us, _In_reads_(cmds_len) const USCommand* cmds, int16_t cmds_len);
-void us_destroy(_Inout_ UselessShell* us);
-bool us_start(_Inout_ UselessShell* us);
-_Check_return_ USProcessCmd us_process_cmd(_Inout_ UselessShell* us, int len);
-_Ret_maybenull_ User* us_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon);
-_Ret_maybenull_ User* us_create_user_h(_Inout_ UselessShell* us, _In_z_ const char* username, _In_ const char* password_hash, bool is_super, char icon);
-bool us_delete_user(_Inout_ UselessShell* us, _In_ User* user);
-bool us_login(_Inout_ UselessShell* us, _In_ User* user, bool quiet);
-bool us_logout(_Inout_ UselessShell* us);
-_Check_return_ USReturn us_get_secret(_Out_writes_(max) char* buffer, byte min, byte max);
-_Ret_maybenull_ User* us_get_user(_In_ UselessShell* us, _In_z_ const char* username);
+bool
+us_create(_Out_ UselessShell* us, _In_reads_(cmds_len) const USCommand* cmds, int16_t cmds_len);
+
+void
+us_destroy(_Inout_ UselessShell* us);
+
+bool
+us_start(_Inout_ UselessShell* us);
+
+_Check_return_ USProcessCmd
+us_process_cmd(_Inout_ UselessShell* us, int len);
+
+_Ret_maybenull_ User*
+us_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon);
+
+_Ret_maybenull_ User*
+us_create_user_h(_Inout_ UselessShell* us, _In_z_ const char* username, _In_ const char* password_hash, bool is_super, char icon);
+
+bool
+us_delete_user(_Inout_ UselessShell* us, _In_ User* user);
+
+bool
+us_login(_Inout_ UselessShell* us, _In_ User* user, bool quiet);
+
+bool
+us_logout(_Inout_ UselessShell* us);
+
+_Check_return_ USReturn
+us_get_secret(_Out_writes_(max) char* buffer, byte min, byte max);
+
+_Ret_maybenull_ User*
+us_get_user(_In_ UselessShell* us, _In_z_ const char* username);

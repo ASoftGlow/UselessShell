@@ -1,25 +1,27 @@
 #include "util.h"
 #include <errno.h>
+#include <string.h>
+#include <ctype.h>
 
 #ifdef _WIN32
 #include <conio.h>
 #include <shlobj.h>
 #define _us_getchar _getch
 
-errno_t get_cfg_path(_Out_writes_(_MAX_PATH) char* buffer, _In_z_ const char* name)
+errno_t get_cfg_path(_Out_writes_(US_MAX_PATH) char* buffer, _In_z_ const char* name)
 {
 	if (!SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, buffer)))
 	{
 		return EIO;
 	}
-	strcat(buffer, "\\");
+	strcat(buffer, "\\.");
 	strcat(buffer, name);
 	strcat(buffer, "\\");
 
 	if (CreateDirectoryA(buffer, NULL))
 	{
 		SetFileAttributesA(buffer, FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED);
-		return EEXIST;
+		return 0;
 	}
 	else
 	{
@@ -31,26 +33,13 @@ errno_t get_cfg_path(_Out_writes_(_MAX_PATH) char* buffer, _In_z_ const char* na
 			return ENFILE;
 		}
 	}
-	return 0;
+	return EEXIST;
 }
 
-void sleep(unsigned long ms)
+void us_sleep(unsigned long ms)
 {
 	Sleep(ms);
 }
-#else
-#define _us_getchar getch
-
-#include <unistd.h>
-void sleep(unsigned long ms)
-{
-	nanosleep((const struct timespec[]) {
-		{
-			0, ms * 1000000L
-		}
-	}, NULL);
-}
-#endif
 
 errno_t create_directory(_In_z_ const char* path)
 {
@@ -100,17 +89,139 @@ int get_directory_contents(_Inout_z_ char* path, _Out_writes_(max) char contents
 	return 0;
 }
 
+bool us_chrdy(void)
+{
+	return _kbhit();
+}
+#else
+#include <unistd.h>
+#include <dirent.h> 
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
+
+#define _us_getchar getchar
+
+void us_sleep(unsigned long ms)
+{
+	nanosleep((const struct timespec[]) {
+		{
+			0, ms * 1000000L
+		}
+	}, NULL);
+}
+
+errno_t create_directory(_In_z_ const char* path)
+{
+	return mkdir(path, 0755);
+}
+
+errno_t delete_directory(_Inout_z_ char* path)
+{
+	return rmdir(path);
+}
+
+int get_directory_contents(_Inout_z_ char* path, _Out_writes_(max) char contents[][16], int max, bool is_dir)
+{
+	int i = 0;
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(path);
+	if (d) 
+	{
+		while ((dir = readdir(d)) && i < max)
+		{
+			if (!is_dir && dir->d_type != DT_DIR) continue;
+			if (strcmp(dir->d_name, "..") == 0) continue;
+			if (strcmp(dir->d_name, ".") == 0) continue;
+
+			strncpy(contents[i], dir->d_name, sizeof(contents[0]) - 1);
+			contents[i++][sizeof(contents[0]) - 1] = 0;
+		}
+		closedir(d);
+		if (i < max)
+		{
+			contents[i][0] = 0;
+		}
+	}
+}
+
+bool us_chrdy(void)
+{
+	int bytesWaiting;
+	return ioctl(0, FIONREAD, &bytesWaiting) == 0 && bytesWaiting; //TODO
+}
+
+errno_t get_cfg_path(_Out_writes_(US_MAX_PATH) char* buffer, _In_z_ const char* name)
+{
+	const char *out_orig = buffer;
+	char *home = getenv("XDG_CONFIG_HOME");
+	unsigned int config_len = 0;
+	if (!home)
+	{
+		home = getenv("HOME");
+		if (!home)
+		{
+			// Can't find home directory
+			buffer[0] = 0;
+			return ENFILE;
+		}
+		config_len = strlen(".config/");
+	}
+
+	unsigned int home_len = strlen(home);
+
+	memcpy(buffer, home, home_len);
+	buffer += home_len;
+	*buffer = '/';
+	buffer++;
+	if (config_len)
+	{
+		memcpy(buffer, ".config/", config_len);
+		buffer += config_len;
+		/* Make the .config folder if it doesn't already exist */
+		*buffer = '\0';
+		mkdir(out_orig, 0755);
+	}
+	strcpy(stpcpy(buffer, name), "/");
+
+	errno = 0;
+	mkdir(out_orig, 0755);
+	return errno;
+}
+
+extern struct termios newtw, newti;
+
+static inline void enableInputWait(void)
+{
+	tcsetattr(STDIN_FILENO, TCSANOW, &newtw);
+}
+static inline void disableInputWait(void)
+{
+	tcsetattr(STDIN_FILENO, TCSANOW, &newti);
+}
+static inline void clearInput(void)
+{
+	disableInputWait();
+	while (getchar() > 0);
+	enableInputWait();
+}
+#endif
+
 USChar us_getchar(void)
 {
-	char c = _us_getchar();
+	int c = _us_getchar();
 	switch (c)
 	{
 	case 3:
 	case 4:
 		return USCharExit;
 
+#ifdef _WIN32
 	case 0:
-	case 224:
 	case -32:
 		char b = _us_getchar();
 		switch (b)
@@ -138,22 +249,103 @@ USChar us_getchar(void)
 		case -108: return USCharDetails;
 
 		default:
-#if _DEBUG
-			printf("%i", (int)b);
-			fflush(stdout);
-#endif
 			return USCharUnknown;
 		}
 		break;
+#else
+	case 27:
+		disableInputWait();
+		c = getchar();
+		enableInputWait();
+		if (c < 0) return 27;
+		if (c == '[')
+		{
+			c = getchar();
+			switch (c)
+			{
+			case 'A': return USCharUp;
+			case 'B': return USCharDown;
+			case 'C': return USCharRight;
+			case 'D': return USCharLeft;
+			case 'H': return USCharHome;
+			case 'F': return USCharEnd;
+			case 'Z': return USCharDetails;
+
+			case '3':
+				switch (c = getchar())
+				{
+				case '~': return USCharDelete;
+				case ';':
+					switch (c = getchar())
+					{
+					case '5':
+						switch (c = getchar())
+						{
+						case '~': return USCharDeleteWord;
+						}
+					}
+				}
+
+			case '1':
+				switch (c = getchar())
+				{
+				case ';':
+					switch (c = getchar())
+					{
+					case '5':
+						switch (c = getchar())
+						{
+						case 'A': return USCharUpWord;
+						case 'B': return USCharDownWord;
+						case 'C': return USCharRightWord;
+						case 'D': return USCharLeftWord;
+						}
+					}
+				}
+			
+			case '5':
+				switch (c = getchar())
+				{
+				case '~': return USCharPageUp;
+				case ';':
+					switch (c = getchar())
+					{
+					case '5':
+						switch (c = getchar())
+						{
+						case '~': return USCharPageUpWord;
+						}
+					}
+				}
+
+			case '6':
+				switch (c = getchar())
+				{
+				case '~': return USCharPageDown;
+				case ';':
+					switch (c = getchar())
+					{
+					case '6':
+						switch (c = getchar())
+						{
+						case '~': return USCharPageDownWord;
+						}
+					}
+				}
+			}
+			clearInput();
+			return USCharUnknown;
+		}
+		else
+		{
+			ungetc(c, stdin);
+		}
+		break;
+#endif
 
 	default:
 		return c;
 	}
-}
-
-bool us_chrdy(void)
-{
-	return _kbhit();
 }
 
 bool strislwr(_In_z_ const char* str)
@@ -190,12 +382,20 @@ void delete_self(void)
 		"FOR / L % %L IN(0, 1, 10) DO " // 10 attempts to
 		"Del \"%s\" && IF NOT EXIST \"%s\" (exit /b) " // delete file
 		"ELSE timeout /NOBREAK 1"; // otherwise wait
-	char cmd[MAX_PATH * 2 + sizeof(cmd_fmt)];
+	char cmd[US_MAX_PATH * 2 + sizeof(cmd_fmt)];
 	sprintf(cmd, cmd_fmt, __argv[0], __argv[0]);
 	CreateProcessA(NULL, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 	CloseHandle(pi.hProcess);
 	CloseHandle(pi.hThread);
 #else
-	unlink(__argv[0]);
+	char path[256];
+    int status;
+
+    // Get the path of the current program
+    status = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    exit(EXIT_FAILURE);
+    path[status] = '\0';
+
+	unlink(path);
 #endif
 }

@@ -8,7 +8,6 @@
 
 #define _VERIFY(expression, action) if (!(expression)) {put(NO_COLOR ? "!ERROR! " :ANSI_COLOR_RED);action;if(!NO_COLOR)put(ANSI_COLOR_RESET);fflush(stdout);abort();}
 #define VERIFY(expression, reason) _VERIFY(expression, puts(reason))
-#if _DEBUG
 #define VERIFY_CMD(expression, reason) _VERIFY(expression, printf("[CMD] %s: " reason "\n", cmd->name))
 #define VERIFY_CMD_ARG(expression, reason) _VERIFY(expression, printf("[CMD] %s: [ARG] %s: " reason, cmd->name, arg->name))
 #define _WARN(expression, action) if (expression) {put(NO_COLOR ? "!WARNING! " : ANSI_COLOR_YELLOW);action;if(!NO_COLOR)put(ANSI_COLOR_RESET);}
@@ -17,13 +16,6 @@
 #define WARN_CMD_ARG(etype, reason) WARN(arg->type == USCommandArgType ## etype, "A " #etype " argument " reason)
 #define VERIFY_CMD_STACK_LEN(len) VERIFY_CMD(len <= USInputBufferSize, "Command stack is too long to input");
 #define VERIFY_CMD_ARG_STACK_LEN(len) VERIFY_CMD_ARG(len <= USInputBufferSize, "Command stack is too long to input");
-#else
-#define VERIFY_CMD(expression, reason)
-#define VERIFY_CMD_ARG(expression, reason)
-#define WARN(expression, reason)
-#define WARN_CMD(expression, reason)
-#define WARN_CMD_ARG(etype, reason)
-#endif
 
 #ifdef US_ENABLE_TESTING
 static void _VERIFY_INPUT(UselessShell* us, const char* input, USProcessCmd expected, const char* purpose)
@@ -60,7 +52,7 @@ static void us_run_tests(UselessShell* us)
 	VERIFY_INPUT("_test b \"one two", ParseError, "Incomplete quotes");
 	VERIFY_INPUT("_test \"", ParseError, "Incomplete quotes");
 
-	put(ANSI_CLEAR_OUTPUT);
+	puts(ANSI_CLEAR_OUTPUT ANSI_COLOR_GREEN "[Testing] Succeeded" ANSI_COLOR_RESET);
 }
 #endif
 
@@ -185,6 +177,10 @@ bool useless_shell_start(_Inout_ UselessShell* us)
 
 bool useless_shell_create_user(_Inout_ UselessShell* us, _In_z_ const char* username, _In_z_ const char* password, bool is_super, char icon)
 {
+	if (strlen(username) >= sizeof(us->users[0].username))
+	{
+		return false;
+	}
 	return us_create_user(us, username, password, is_super, icon) != NULL;
 }
 
