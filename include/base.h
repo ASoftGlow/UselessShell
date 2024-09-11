@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define US_MAX_PATH 260
+
 typedef uint8_t byte;
 
 #define countof(a)     (sizeof(a) / sizeof(a[0]))

@@ -221,7 +221,7 @@ us_getchar(void)
 
 #ifdef _WIN32
     case 0:
-    case -32:
+    case 224:
         char b = _us_getchar();
         switch (b)
         {
@@ -401,3 +401,12 @@ delete_self(void)
     unlink(path);
 #endif
 }
+
+#ifdef WIN32
+_Ret_z_ char*
+stpcpy(_Inout_z_ char* dest, _In_z_ const char* src)
+{
+    const size_t len = strlen(src);
+    return (char*)memcpy(dest, src, len + 1) + len;
+}
+#endif

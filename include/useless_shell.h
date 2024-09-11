@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 
-#define US_MAX_PATH 260
 #define DYNAMIC_ARRAY(name, type) \
     type* name;                   \
     int16_t name##_len
