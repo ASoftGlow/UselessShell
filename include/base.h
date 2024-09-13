@@ -10,6 +10,10 @@
 
 typedef uint8_t byte;
 
+#if !defined(errno_t)
+typedef int errno_t;
+#endif
+
 #define countof(a)     (sizeof(a) / sizeof(a[0]))
 #define STR_VALUE(arg) #arg
 

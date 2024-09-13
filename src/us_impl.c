@@ -1,8 +1,12 @@
 #include "us_impl.h"
 #include "Md5.h"
-#include "ansi_codes.h"
 #include "base.h"
-#include "util.h"
+#include "util/escape_codes.h"
+#include "util/files.h"
+#include "util/input.h"
+#include "util/output.h"
+#include "util/string.h"
+#include "util/terminal.h"
 
 #include <errno.h>
 #include <string.h>
@@ -46,7 +50,7 @@ us_create(_Out_ UselessShell* us, _In_reads_(cmds_len) const USCommand* cmds, in
     us->cmds = cmds;
     us->cmds_len = cmds_len;
 
-    ansi_setup();
+    terminal_setup();
 
     if (!User_serial_size)
     {
@@ -111,7 +115,7 @@ void
 us_destroy(_Inout_ UselessShell* us)
 {
     us_close_log(&us->history);
-    ansi_setdown();
+    terminal_setdown();
     us->mode = USModeDestoryed;
 }
 
@@ -1089,7 +1093,11 @@ us_start(_Inout_ UselessShell* us)
         switch (us_get_secret(password, 3, sizeof(password)))
         {
         case USReturnCancel:
-        case USReturnExit:   delete_directory(us->cfg_path); return false;
+        case USReturnExit:
+        {
+            delete_directory(us->cfg_path);
+            return false;
+        }
         case USReturnNormal: break;
         }
         User* admin = us_create_user(us, "admin", password, true, '@');

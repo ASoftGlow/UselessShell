@@ -1,6 +1,7 @@
 x64
 x32
 .vs
+*.aps
 .vscode/*
 !.vscode/extensions.json
 build

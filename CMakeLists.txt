@@ -9,12 +9,15 @@ endif()
 SET(SOURCE_FILES
     lib/Md5.c
 
-    src/ansi_codes.c
     src/cmd_defs.c
     src/cmd_impls.c
     src/useless_shell.c
     src/us_impl.c
-    src/util.c
+    src/util/files.c
+    src/util/input.c
+    src/util/terminal.c
+    src/util/misc.c
+    src/util/string.c
     src/main.c
 )
 
@@ -30,6 +33,7 @@ set_property(TARGET us PROPERTY C_STANDARD_REQUIRED ON)
 target_compile_definitions(us PRIVATE
     $<$<CONFIG:Debug>:
         US_ENABLE_TESTING
+        US_VERIFY_COMMANDS
     >
 )
 

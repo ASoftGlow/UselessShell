@@ -1,8 +1,12 @@
 #include "cmd_impls.h"
 #include "us_impl.h"
 
-#include "ansi_codes.h"
-#include "util.h"
+#include "util/escape_codes.h"
+#include "util/files.h"
+#include "util/input.h"
+#include "util/misc.h"
+#include "util/output.h"
+#include "util/string.h"
 
 CMD_IMPL_PROTO(clear)
 {

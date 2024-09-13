@@ -1,7 +1,9 @@
 #include "useless_shell.h"
-#include "ansi_codes.h"
 #include "us_impl.h"
-#include "util.h"
+#include "util/escape_codes.h"
+#include "util/output.h"
+#include "util/string.h"
+#include "util/terminal.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -71,8 +73,6 @@ us_run_tests(UselessShell* us)
     VERIFY_INPUT("_test b \"one space\" two", Success, "Quoted arguments");
     VERIFY_INPUT("_test b \"one two", ParseError, "Incomplete quotes");
     VERIFY_INPUT("_test \"", ParseError, "Incomplete quotes");
-
-    puts(ANSI_CLEAR_OUTPUT ANSI_COLOR_GREEN "[Testing] Succeeded" ANSI_COLOR_RESET);
 }
 #endif
 
@@ -179,6 +179,15 @@ useless_shell_create(_In_reads_(cmds_len) const USCommand* cmds, int16_t cmds_le
 #endif
 #ifdef US_ENABLE_TESTING
         us_run_tests(us);
+#endif
+#if defined(US_VERIFY_COMMANDS) || defined(US_ENABLE_TESTING)
+        put(ANSI_CLEAR_OUTPUT);
+#endif
+#ifdef US_VERIFY_COMMANDS
+        puts(ANSI_COLOR_GREEN "[Validation] Succeeded" ANSI_COLOR_RESET);
+#endif
+#ifdef US_ENABLE_TESTING
+        puts(ANSI_COLOR_GREEN "[Testing] Succeeded" ANSI_COLOR_RESET);
 #endif
         return (UselessShell*)us;
     }
