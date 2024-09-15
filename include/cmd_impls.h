@@ -1,6 +1,6 @@
 #pragma once
-#include "useless_shell.h"
 #include "cmd_macros.h"
+#include "useless_shell.h"
 
 CMD_IMPL_PROTO(clear);
 CMD_IMPL_PROTO(exit);

@@ -1,9 +1,10 @@
 #include "us_impl.h"
 
-#include "cmd_macros.h"
 #include "cmd_defs.h"
 #include "cmd_impls.h"
+#include "cmd_macros.h"
 
+// clang-format off
 const USCommand cmds[] =
 {
 	CMD(
@@ -179,4 +180,5 @@ const USCommand cmds[] =
 	)
 #endif
 };
+// clang-format on
 const short cmds_len = countof(cmds);
